@@ -1,0 +1,31 @@
+services:
+  nest-app:
+    container_name: infobe-app
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: ["npm", "run", "start:dev"]
+
+  db:
+    image: mysql:8.0
+    container_name: db_infobe
+    restart: always
+    tty: true
+    command: [ '--default-authentication-plugin=mysql_native_password' ]
+    volumes:
+      - ./mysql:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    environment:
+      - MYSQL_DATABASE=infobe
+      - MYSQL_ROOT_PASSWORD=infobe
+      - TZ=America/Sao_Paulo
+    ports:
+      - 3306:3306
