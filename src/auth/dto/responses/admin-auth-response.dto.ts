@@ -12,4 +12,8 @@ export class AuthResponseDto {
   @IsBoolean()
   @IsNotEmpty()
   role: string;
+
+  @IsString()
+  @IsNotEmpty()
+  name: string;
 }

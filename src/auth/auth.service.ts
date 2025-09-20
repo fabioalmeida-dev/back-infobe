@@ -38,6 +38,7 @@ export class AuthService {
     response.accessToken = jwt;
     response.type = 'Bearer';
     response.role = user.role;
+    response.name = user.name;
 
 
     return response;
