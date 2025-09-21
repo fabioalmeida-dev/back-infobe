@@ -1,4 +1,15 @@
-import {Body, Controller, HttpException, HttpStatus, Post, Res, UploadedFiles, UseInterceptors,} from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Param,
+  Post,
+  Res,
+  UploadedFiles,
+  UseInterceptors,
+} from '@nestjs/common';
 import {UploadService} from './upload.service';
 
 
@@ -8,6 +19,10 @@ import {FileFieldsInterceptor} from '@nestjs/platform-express';
 import {validate} from 'class-validator';
 import {UploadDto, UploadType} from './dto/upload.dto';
 import type {Response} from "express";
+import {Readable} from "stream";
+import {Public} from "../auth/public.decorator";
+import {FileNotFoundError} from "./errors/file-not-found.error";
+import {S3ServiceException} from "@aws-sdk/client-s3";
 
 @Controller('upload')
 export class UploadController {
@@ -66,5 +81,49 @@ export class UploadController {
     responseDto.url = res.url;
 
     return response.status(HttpStatus.OK).json(res);
+  }
+
+  @Public()
+  @Get('/:key')
+  async getUploadByKey(@Param('key') key: string, @Res() response: Response) {
+    try {
+      const file = await this.uploadService.getImageByKeyAndId(key);
+
+      response.set({
+        'Content-Type': file.mimetype,
+        'Content-Length': file.size,
+        'Content-Disposition': `inline; filename="${file.key}"`,
+      });
+
+      Readable.fromWeb(file.stream).pipe(response);
+    } catch (error) {
+      if (error instanceof FileNotFoundError) {
+        throw new HttpException(
+          {
+            status: HttpStatus.NOT_FOUND,
+            error: error?.message || 'Not found',
+          },
+          HttpStatus.NOT_FOUND,
+          {
+            cause: error,
+          },
+        );
+      }
+
+      if (error instanceof S3ServiceException) {
+        throw new HttpException(
+          {
+            status: HttpStatus.INTERNAL_SERVER_ERROR,
+            error: 'Internal Server Error',
+          },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          {
+            cause: error,
+          },
+        );
+      }
+
+      throw error;
+    }
   }
 }

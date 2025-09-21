@@ -9,8 +9,8 @@ export type UploadedImageStream = {
 };
 
 export interface UploadGateway {
-  // @ts-ignore
   upload(file: Express.Multer.File): Promise<string>;
   existsByKey(fileKey: string): Promise<void>;
   getPresignedUrl(fileKey: string, expiresInSeconds?: number): Promise<string>;
+  getUploadedImageStream(fileKey: string): Promise<UploadedImageStream>;
 }

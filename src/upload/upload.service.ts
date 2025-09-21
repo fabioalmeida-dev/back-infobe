@@ -35,4 +35,14 @@ export class UploadService {
       url: await this.uploadGateway.getPresignedUrl(key, 3600),
     };
   }
+
+  async getImageByKeyAndId(fileKey: string): Promise<UploadedImageStream> {
+    const findFileById = await this.findFile(fileKey);
+
+    if (!findFileById) {
+      throw new FileNotFoundError('File not found');
+    }
+
+    return await this.uploadGateway.getUploadedImageStream(fileKey);
+  }
 }

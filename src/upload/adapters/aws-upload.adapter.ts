@@ -2,7 +2,7 @@ import {GetObjectCommand, HeadObjectCommand, S3Client,} from '@aws-sdk/client-s3
 import * as crypto from 'crypto';
 import {Inject, Injectable} from '@nestjs/common';
 import {ConfigService} from '@nestjs/config';
-import {UploadGateway,} from '../gateways/upload.gateway';
+import {type UploadedImageStream, UploadGateway,} from '../gateways/upload.gateway';
 import {Upload} from "@aws-sdk/lib-storage";
 import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 
@@ -35,6 +35,53 @@ export class AwsUploadAdapter implements UploadGateway {
 
     return key;
 
+  }
+
+  async getUploadedImageStream(
+    fileKey: string,
+    rangeHeader?: string,
+  ): Promise<UploadedImageStream & { statusCode: number; range?: string }> {
+    const bucket = this.configService.get('aws.s3.bucket');
+
+    const head = await this.s3Client.send(
+      new HeadObjectCommand({
+        Bucket: bucket,
+        Key: fileKey,
+      }),
+    );
+
+    const totalSize = head.ContentLength ?? 0;
+
+    let start = 0;
+    let end = totalSize - 1;
+
+    if (rangeHeader) {
+      const match = /^bytes=(\d+)-(\d*)$/.exec(rangeHeader);
+      if (match) {
+        start = parseInt(match[1], 10);
+        if (match[2]) {
+          end = parseInt(match[2], 10);
+        }
+      }
+    }
+
+    const response = await this.s3Client.send(
+      new GetObjectCommand({
+        Bucket: bucket,
+        Key: fileKey,
+        Range: `bytes=${start}-${end}`,
+      }),
+    );
+
+    return {
+      key: fileKey,
+      // @ts-ignore
+      mimetype: response.ContentType!,
+      stream: response.Body.transformToWebStream(),
+      size: end - start + 1,
+      statusCode: rangeHeader ? 206 : 200,
+      range: rangeHeader ? `bytes ${start}-${end}/${totalSize}` : undefined,
+    };
   }
 
   async existsByKey(fileKey: string): Promise<void> {
