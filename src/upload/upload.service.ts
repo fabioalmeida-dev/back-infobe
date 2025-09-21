@@ -1,7 +1,8 @@
 import {Inject, Injectable} from '@nestjs/common';
 import {UploadType} from './dto/upload.dto';
-import type {UploadGateway} from "./gateways/upload.gateway";
+import type {UploadedImageStream, UploadGateway} from "./gateways/upload.gateway";
 import type {UploadRepository} from "./gateways/upload.repository";
+import {FileNotFoundError} from "./errors/file-not-found.error";
 
 @Injectable()
 export class UploadService {
@@ -11,6 +12,13 @@ export class UploadService {
     @Inject('UploadRepository')
     private readonly uploadRepository: UploadRepository,
   ) {}
+
+  async findFile(fileKey: string): Promise<boolean> {
+    const find = await this.uploadRepository.findFile(fileKey);
+
+    return !!find.fileKey;
+  }
+
 
   async upload(
     file: any,
