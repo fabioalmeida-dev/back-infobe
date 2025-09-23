@@ -45,6 +45,7 @@ export class CertificateKnexAdapter implements CertificateRepository {
     total_duration_minutes: number;
     issued_at: Date;
     certificate_key: string;
+    cover_key: string;
   } | null> {
     try {
       const result = await this.knex(TableNames.certificate)
@@ -58,6 +59,7 @@ export class CertificateKnexAdapter implements CertificateRepository {
           `${TableNames.users}.name as user_name`,
           `${TableNames.users}.tax_identifier as user_cpf`,
           `${TableNames.course}.name as course_name`,
+          `${TableNames.course}.cover_key as cover_key`,
           `${TableNames.certificate}.issued_at`,
           `${TableNames.certificate}.certificate_key`,
           this.knex.raw('SUM(COALESCE(??, 0)) as total_duration_minutes', [`${TableNames.lesson}.minutes`])
@@ -84,6 +86,7 @@ export class CertificateKnexAdapter implements CertificateRepository {
     total_duration_minutes: number;
     issued_at: Date;
     certificate_key: string;
+    cover_key: string;
   }>> {
     try {
       const results = await this.knex(TableNames.certificate)
@@ -94,6 +97,7 @@ export class CertificateKnexAdapter implements CertificateRepository {
         .select(
           `${TableNames.certificate}.id`,
           `${TableNames.course}.name as course_name`,
+          `${TableNames.course}.cover_key as cover_key`,
           `${TableNames.certificate}.issued_at`,
           `${TableNames.certificate}.certificate_key`,
           this.knex.raw('SUM(COALESCE(??, 0)) as total_duration_minutes', [`${TableNames.lesson}.minutes`])

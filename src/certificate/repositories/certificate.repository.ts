@@ -5,12 +5,12 @@ export interface CertificateRepository {
   findById(id: string): Promise<CertificateEntity | null>;
   create(data: any): Promise<CertificateEntity | null>;
 
-  // Novos métodos
   findByIdWithDetails(id: string): Promise<{
     id: string;
     user_name: string;
     user_cpf: string;
     course_name: string;
+    cover_key: string;
     total_duration_minutes: number;
     issued_at: Date;
     certificate_key: string;
@@ -19,6 +19,7 @@ export interface CertificateRepository {
   findByUserId(userId: string): Promise<Array<{
     id: string;
     course_name: string;
+    cover_key: string;
     total_duration_minutes: number;
     issued_at: Date;
     certificate_key: string;
