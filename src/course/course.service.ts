@@ -33,12 +33,31 @@ export class CourseService {
     }));
 
   }
+
+  async findAllForAdmin(status?: 'DRAFT' | 'PUBLISHED') {
+    const allCourse = await this.repo.findAllForAdmin(status);
+    return await Promise.all(allCourse.map(async (course) => {
+      const presignedFileCover = await this.uploadGateway.getPresignedUrl(
+        course.cover_key,
+        3600,
+      );
+
+      return {
+        ...course,
+        cover_url: presignedFileCover
+      }
+    }));
+  }
   update(id: string, updateCourseDto: UpdateCourseDto) {
     return this.repo.update(id, updateCourseDto);
   }
 
   remove(id: string) {
     return this.repo.delete(id);
+  }
+
+  publish(id: string) {
+    return this.repo.publish(id);
   }
 
   async findOneWithProgress(id: string, userId: string) {

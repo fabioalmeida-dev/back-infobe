@@ -15,9 +15,23 @@ export class CourseKnexAdapter implements CourseRepository {
 
     findAll(): Promise<Course[]> {
       try {
-        return this.knex(TableNames.course).select('*');
+        return this.knex(TableNames.course).select('*').where('status', 'PUBLISHED');
       } catch (error) {
         throw new DatabaseException('Error retrieving courses');
+      }
+    }
+
+    findAllForAdmin(status?: 'DRAFT' | 'PUBLISHED'): Promise<Course[]> {
+      try {
+        const query = this.knex(TableNames.course).select('*');
+        
+        if (status) {
+          query.where('status', status);
+        }
+        
+        return query.orderBy('created_at', 'desc');
+      } catch (error) {
+        throw new DatabaseException('Error retrieving courses for admin');
       }
     }
     findById(id: string): Promise<Course | null> {
@@ -44,12 +58,23 @@ export class CourseKnexAdapter implements CourseRepository {
 
   async update(id: string, courseData: any): Promise<any | null> {
       try {
+        const updateData: any = {};
+        
+        if (courseData.name !== undefined) {
+          updateData.name = courseData.name;
+        }
+        
+        if (courseData.cover_key !== undefined) {
+          updateData.cover_key = courseData.cover_key;
+        }
+        
+        if (courseData.status !== undefined) {
+          updateData.status = courseData.status;
+        }
+
         await this.knex(TableNames.course)
           .where('id', id)
-          .update({
-            name: courseData.name,
-            cover_key: courseData.cover_key,
-          })
+          .update(updateData);
 
         return this.findById(id);
       } catch (error) {
@@ -64,6 +89,18 @@ export class CourseKnexAdapter implements CourseRepository {
         } catch (error) {
           throw new DatabaseException('Error deleting course');
         }
+    }
+
+    async publish(id: string): Promise<Course | null> {
+      try {
+        await this.knex(TableNames.course)
+          .where('id', id)
+          .update({ status: 'PUBLISHED' });
+
+        return this.findById(id);
+      } catch (error) {
+        throw new DatabaseException('Error publishing course');
+      }
     }
 
     async findByIdWithProgress(id: string, userId: string): Promise<{
@@ -269,6 +306,7 @@ export class CourseKnexAdapter implements CourseRepository {
           )
           .join(TableNames.module, `${TableNames.course}.id`, `${TableNames.module}.course_id`)
           .join(TableNames.lesson, `${TableNames.module}.id`, `${TableNames.lesson}.module_id`)
+          .where(`${TableNames.course}.status`, 'PUBLISHED')
           .groupBy(`${TableNames.course}.id`, `${TableNames.course}.name`);
 
         if (viewedCourseIds.length > 0) {
@@ -321,6 +359,7 @@ export class CourseKnexAdapter implements CourseRepository {
              .join(TableNames.module, `${TableNames.course}.id`, `${TableNames.module}.course_id`)
              .join(TableNames.lesson, `${TableNames.module}.id`, `${TableNames.lesson}.module_id`)
              .where(`${TableNames.course}.id`, courseId)
+             .where(`${TableNames.course}.status`, 'PUBLISHED')
              .groupBy(`${TableNames.course}.id`, `${TableNames.course}.name`, `${TableNames.course}.cover_key`)
              .first();
 

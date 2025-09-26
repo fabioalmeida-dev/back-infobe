@@ -20,7 +20,7 @@ import {AuthenticateGuard} from './guard/authenticate.guard';
         configService: ConfigService,
       ): Promise<JwtModuleOptions> => ({
         secret: configService.get<string>('JWT_TOKEN'),
-        signOptions: { expiresIn: '60m' },
+        signOptions: { expiresIn: '30d' },
       }),
     }),
     ConfigModule,

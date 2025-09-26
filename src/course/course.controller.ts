@@ -1,4 +1,4 @@
-import {Body, Controller, Delete, Get, Param, Patch, Post, UseGuards} from '@nestjs/common';
+import {Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards} from '@nestjs/common';
 import {CourseService} from './course.service';
 import {CreateCourseDto} from "./dto/create-course.dto";
 import {UpdateCourseDto} from "./dto/update-course.dto";
@@ -20,6 +20,12 @@ export class CourseController {
     return this.courseService.findAll();
   }
 
+  @Get('admin/all')
+  @UseGuards(AdminGuard)
+  findAllForAdmin(@Query('status') status?: 'DRAFT' | 'PUBLISHED') {
+    return this.courseService.findAllForAdmin(status);
+  }
+
   @Get(':id')
   findOne(
     @User('id') userId: string,
@@ -37,6 +43,12 @@ export class CourseController {
   @UseGuards(AdminGuard)
   remove(@Param('id') id: string) {
     return this.courseService.remove(id);
+  }
+
+  @Patch(':id/publish')
+  @UseGuards(AdminGuard)
+  publish(@Param('id') id: string) {
+    return this.courseService.publish(id);
   }
 
   @Get('user/recent-lessons')

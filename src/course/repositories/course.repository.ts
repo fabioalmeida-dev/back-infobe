@@ -2,6 +2,7 @@ import type {Course} from "../entities/course.entity";
 
 export interface CourseRepository {
   findAll(): Promise<Course[]>;
+  findAllForAdmin(status?: 'DRAFT' | 'PUBLISHED'): Promise<Course[]>;
   findById(id: string): Promise<Course | null>;
   findByIdWithProgress(id: string, userId: string): Promise<{
     course: Course;
@@ -57,5 +58,6 @@ export interface CourseRepository {
   }>>;
   create(courseData: any): Promise<Course | null>;
   update(id: string, courseData: any): Promise<Course | null>;
+  publish(id: string): Promise<Course | null>;
   delete(id: string): Promise<boolean>;
 }
