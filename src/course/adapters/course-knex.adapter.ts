@@ -152,6 +152,7 @@ export class CourseKnexAdapter implements CourseRepository {
         totalLessons: number;
         viewedLessons: number;
         completedLessons: number;
+        hasCertificate: boolean;
       };
       recentLessons: Array<{
         id: string;
@@ -266,13 +267,19 @@ export class CourseKnexAdapter implements CourseRepository {
           .orderBy(`${TableNames.userProgress}.updated_at`, 'desc')
           .limit(5);
 
+        // Verificar se o usuário tem certificado para este curso
+        const certificate = await this.knex(TableNames.certificate)
+          .where({ user_id: userId, course_id: id })
+          .first();
+
         return {
           course,
           modules: modulesWithLessons,
           summary: {
             totalLessons,
             viewedLessons,
-            completedLessons
+            completedLessons,
+            hasCertificate: !!certificate
           },
           recentLessons
         };
