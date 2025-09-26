@@ -21,15 +21,44 @@ export class CourseKnexAdapter implements CourseRepository {
       }
     }
 
-    findAllForAdmin(status?: 'DRAFT' | 'PUBLISHED'): Promise<Course[]> {
+    findAllForAdmin(status?: 'DRAFT' | 'PUBLISHED'): Promise<Array<{
+      id: string;
+      name: string;
+      cover_key: string;
+      created_at: Date;
+      updated_at: Date;
+      status: string;
+      totalLessons: number;
+      minutes: number;
+    }>> {
       try {
-        const query = this.knex(TableNames.course).select('*');
+        const query = this.knex(TableNames.course)
+          .select(
+            `${TableNames.course}.id`,
+            `${TableNames.course}.name`,
+            `${TableNames.course}.cover_key`,
+            `${TableNames.course}.created_at`,
+            `${TableNames.course}.updated_at`,
+            `${TableNames.course}.status`,
+            this.knex.raw('COALESCE(COUNT(DISTINCT ??), 0) as totalLessons', [`${TableNames.lesson}.id`]),
+            this.knex.raw('COALESCE(SUM(??), 0) as minutes', [`${TableNames.lesson}.minutes`])
+          )
+          .leftJoin(TableNames.module, `${TableNames.course}.id`, `${TableNames.module}.course_id`)
+          .leftJoin(TableNames.lesson, `${TableNames.module}.id`, `${TableNames.lesson}.module_id`)
+          .groupBy(
+            `${TableNames.course}.id`,
+            `${TableNames.course}.name`,
+            `${TableNames.course}.cover_key`,
+            `${TableNames.course}.created_at`,
+            `${TableNames.course}.updated_at`,
+            `${TableNames.course}.status`
+          );
         
         if (status) {
-          query.where('status', status);
+          query.where(`${TableNames.course}.status`, status);
         }
         
-        return query.orderBy('created_at', 'desc');
+        return query.orderBy(`${TableNames.course}.created_at`, 'desc');
       } catch (error) {
         throw new DatabaseException('Error retrieving courses for admin');
       }
@@ -262,7 +291,30 @@ export class CourseKnexAdapter implements CourseRepository {
       updated_at: Date;
     }>> {
       try {
-        return await this.knex(TableNames.userProgress)
+        // Primeiro, buscar cursos que o usuário completou 100%
+        const completedCourses = await this.knex.raw(`
+          SELECT DISTINCT up.course_id
+          FROM user_progress up
+          JOIN (
+            SELECT m.course_id, COUNT(DISTINCT l.id) as total_lessons
+            FROM lesson l
+            JOIN module m ON l.module_id = m.id
+            GROUP BY m.course_id
+          ) course_totals ON up.course_id = course_totals.course_id
+          JOIN (
+            SELECT course_id, COUNT(DISTINCT lesson_id) as completed_lessons
+            FROM user_progress
+            WHERE user_id = ? AND completed = 1
+            GROUP BY course_id
+          ) user_completed ON up.course_id = user_completed.course_id
+          WHERE up.user_id = ? 
+          AND course_totals.total_lessons = user_completed.completed_lessons
+        `, [userId, userId]);
+
+        const completedCourseIds = completedCourses[0]?.map((row: any) => row.course_id) || [];
+
+        // Buscar recent lessons excluindo cursos 100% completos
+        const query = this.knex(TableNames.userProgress)
           .join(TableNames.lesson, `${TableNames.userProgress}.lesson_id`, `${TableNames.lesson}.id`)
           .join(TableNames.course, `${TableNames.userProgress}.course_id`, `${TableNames.course}.id`)
           .where(`${TableNames.userProgress}.user_id`, userId)
@@ -274,7 +326,14 @@ export class CourseKnexAdapter implements CourseRepository {
             `${TableNames.course}.cover_key`,
             `${TableNames.userProgress}.percent`,
             `${TableNames.userProgress}.updated_at`
-          )
+          );
+
+        // Excluir cursos 100% completos se houver algum
+        if (completedCourseIds.length > 0) {
+          query.whereNotIn(`${TableNames.course}.id`, completedCourseIds);
+        }
+
+        return await query
           .orderBy(`${TableNames.userProgress}.updated_at`, 'desc')
           .limit(limit);
       } catch (error) {

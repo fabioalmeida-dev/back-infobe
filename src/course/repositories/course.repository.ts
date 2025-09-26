@@ -2,7 +2,16 @@ import type {Course} from "../entities/course.entity";
 
 export interface CourseRepository {
   findAll(): Promise<Course[]>;
-  findAllForAdmin(status?: 'DRAFT' | 'PUBLISHED'): Promise<Course[]>;
+  findAllForAdmin(status?: 'DRAFT' | 'PUBLISHED'): Promise<Array<{
+    id: string;
+    name: string;
+    cover_key: string;
+    created_at: Date;
+    updated_at: Date;
+    status: string;
+    totalLessons: number;
+    minutes: number;
+  }>>;
   findById(id: string): Promise<Course | null>;
   findByIdWithProgress(id: string, userId: string): Promise<{
     course: Course;

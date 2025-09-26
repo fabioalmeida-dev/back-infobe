@@ -43,7 +43,15 @@ export class CourseService {
       );
 
       return {
-        ...course,
+        id: course.id,
+        name: course.name,
+        totalLessons: parseInt(course.totalLessons as any, 10) || 0,
+        minutes: (parseInt(course.minutes as any, 10) || 0).toString(),
+        cover_key: course.cover_key,
+        created_at: course.created_at,
+        updated_at: course.updated_at,
+        status: course.status,
+        progress: 0, // Para admin, sempre 0 pois não há contexto de usuário
         cover_url: presignedFileCover
       }
     }));
