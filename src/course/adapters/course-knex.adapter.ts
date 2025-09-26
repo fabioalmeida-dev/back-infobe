@@ -153,6 +153,7 @@ export class CourseKnexAdapter implements CourseRepository {
         viewedLessons: number;
         completedLessons: number;
         hasCertificate: boolean;
+        ceriticateId?: string;
       };
       recentLessons: Array<{
         id: string;
@@ -279,7 +280,8 @@ export class CourseKnexAdapter implements CourseRepository {
             totalLessons,
             viewedLessons,
             completedLessons,
-            hasCertificate: !!certificate
+            hasCertificate: !!certificate,
+            ceriticateId: certificate?.id || null
           },
           recentLessons
         };
